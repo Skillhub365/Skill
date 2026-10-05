@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://samjugpltzjqobtcrhza.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "skilltrack-labs-platform",
+      "version": "1.0.0",
+      "title": "SkillTrack Labs Platform"
+    },
+    "tools": [
+      {
+        "name": "skilltrack_health",
+        "title": "MCP health",
+        "description": "Report whether the SkillTrack Labs MCP server is healthy: which tool groups are routed, whether mutations are permitted, and whether the cloud, gateway and database integrations are configured. Returns no tenant data.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": null,
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_whoami",
+        "title": "Who am I",
+        "description": "Return the SkillTrack Labs identity behind this connection: display name, role, organisation and how many workspaces and labs are reachable. Use it to confirm the agent is connected as the right person before acting.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": null,
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_list_labs",
+        "title": "List labs",
+        "description": "List the SkillTrack Labs labs this user can launch, with workspace, status and duration. Learners see only labs assigned to them; administrators see the labs of their own organisation.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Restrict the list to one workspace."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_list_sessions",
+        "title": "List sessions",
+        "description": "List lab sessions visible to this user with their status and remaining time. Learners see only their own sessions; administrators see the sessions of their own organisation. Connection details and machine addresses are never returned.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "live": {
+              "type": "boolean",
+              "description": "Only sessions that are still running (default true)."
+            },
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Restrict the list to one workspace."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_get_session",
+        "title": "Get session status",
+        "description": "Return the live status of one SkillTrack Labs session: lifecycle state, connection state, machine readiness and minutes remaining. Access is refused unless the session belongs to this user, or to an administrator of the same organisation.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 120,
+              "description": "The session id."
+            }
+          },
+          "required": [
+            "sessionId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_start_lab",
+        "title": "Start lab",
+        "description": "Start a SkillTrack Labs lab for the signed-in user and return the resulting session. Repeating the call for a lab that is already running returns the existing session instead of a second machine. The lab must be published and assigned to the caller.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "labId": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The lab to launch."
+            }
+          },
+          "required": [
+            "labId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_stop_lab",
+        "title": "Stop lab",
+        "description": "Stop a running SkillTrack Labs session, disconnect its remote desktop and release the machine. This ends the learner's work immediately and cannot be undone.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 120
+            }
+          },
+          "required": [
+            "sessionId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_extend_session",
+        "title": "Extend session",
+        "description": "Extend a running SkillTrack Labs session by a number of minutes, up to the extension allowance configured for its lab. Refused for sessions the caller does not own and for sessions that have already ended.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 120
+            },
+            "minutes": {
+              "type": "integer",
+              "minimum": 5,
+              "maximum": 120,
+              "description": "Minutes to add; the server clamps this to the allowance."
+            }
+          },
+          "required": [
+            "sessionId",
+            "minutes"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "skilltrack_reconnect_session",
+        "title": "Reconnect remote desktop",
+        "description": "Re-establish the remote desktop connection for a running SkillTrack Labs session and report the connection state. Returns no tunnel URL, gateway address or machine address — the learner opens the desktop in the SkillTrack Labs app.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 120
+            }
+          },
+          "required": [
+            "sessionId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

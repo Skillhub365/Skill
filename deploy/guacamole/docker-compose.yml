@@ -1,0 +1,58 @@
+# Apache Guacamole gateway for SkillTrack Labs.
+#
+#   Browser --HTTPS/WSS:443--> nginx --> guacamole (web app) --> guacd --RDP:3389--> private Azure VM
+#
+# Deploy this stack on a host INSIDE the lab VNet (or peered to it). Only 443
+# is published; guacd and RDP never leave the private network.
+services:
+  guacd:
+    image: guacamole/guacd:1.5.5
+    restart: unless-stopped
+    networks: [gateway]        # no published ports: reachable only from guacamole
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - guac-db:/var/lib/postgresql/data
+      # Schema: docker run --rm guacamole/guacamole:1.5.5 /opt/guacamole/bin/initdb.sh --postgresql > initdb.sql
+      - ./initdb.sql:/docker-entrypoint-initdb.d/initdb.sql:ro
+    networks: [gateway]
+
+  guacamole:
+    image: guacamole/guacamole:1.5.5
+    restart: unless-stopped
+    depends_on: [guacd, postgres]
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: 4822
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guacamole
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      # SkillTrack embeds the client in an iframe on its own origin.
+      REMOTE_IP_VALVE_ENABLED: "true"
+      EXTENSION_PRIORITY: postgresql
+    networks: [gateway]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on: [guacamole]
+    ports:
+      - "443:443"              # HTTPS + WSS only; no plaintext, no 3389
+    volumes:
+      - ./nginx/guacamole.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks: [gateway]
+
+networks:
+  gateway:
+    driver: bridge
+
+volumes:
+  guac-db:
